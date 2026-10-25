@@ -35,14 +35,84 @@ function load(){
 }
 function restart(){level=0;score=0;lives=5;paused=false;load()}
 function move(a,dx,dy){const nx=a.x+dx,ny=a.y+dy;if(!solid(tile(nx,ny))&&nx>=0&&nx<W&&ny>=0&&ny<H){a.x=nx;a.y=ny;return true}return false}
-function gravity(a){const t=tile(a.x,a.y),b=tile(a.x,a.y+1);if(t!=='H'&&t!=='-'&&b!=='H'&&!solid(b))move(a,0,1)}
+function gravity(a){
+ if(a.trapped)return;
+ const t=tile(a.x,a.y),b=tile(a.x,a.y+1);
+ if(t!=='H'&&t!=='-'&&b!=='H'&&!solid(b))move(a,0,1);
+}
+function inHole(a){return holes.has(a.x+','+a.y)}
+function loseLife(){lives--;if(lives<=0)paused=true;else load()}
+
 function dig(dir){const x=player.x+dir,y=player.y+1;if(tile(x,y)==='#'){set(x,y,'.');holes.set(x+','+y,65)}}
 function update(){if(paused)return;tick++;let dx=0,dy=0;if(keys.has('ArrowLeft')||keys.has('a'))dx=-1;else if(keys.has('ArrowRight')||keys.has('d'))dx=1;else if(keys.has('ArrowUp')||keys.has('w'))dy=-1;else if(keys.has('ArrowDown')||keys.has('s'))dy=1;
 if(dy<0&&(['H','L'].includes(tile(player.x,player.y))||['H','L'].includes(tile(player.x,player.y-1)))){if(tile(player.x,player.y-1)==='#' && tile(player.x,player.y)==='H')set(player.x,player.y-1,'H');move(player,0,-1);}
 else if(dy>0)move(player,0,1);
 else if(dx)move(player,dx,0);
 gravity(player);
-if(tile(player.x,player.y)==='$'){set(player.x,player.y,'.');gold--;score+=100;if(gold===0){level++;load();return}}
+if(inHole(player)){loseLife();return}
+if(tile(player.x,player.y)==='{set(player.x,player.y,'.');gold--;score+=100;if(gold===0){level++;load();return}}
+if(tick%3===0)for(const e of enemies){
+ if(e.trapped)continue;
+ const d=Math.sign(player.x-e.x);
+ if(d&&Math.random()<.75)move(e,d,0);
+ else if(player.y<e.y&&tile(e.x,e.y)==='H')move(e,0,-1);
+ gravity(e);
+ if(inHole(e)){e.trapped=true;e.trapTick=tick}
+}
+for(const e of enemies)if(e.x===player.x&&e.y===player.y){loseLife();break}
+for(const [k,v] of holes){
+ const [x,y]=k.split(',').map(Number);
+ if(v<=1){
+  set(x,y,'#');holes.delete(k);
+  if(player.x===x&&player.y===y){loseLife();return}
+  for(const e of enemies)if(e.x===x&&e.y===y){
+   e.trapped=false;
+   // Az ellenség felülről tér vissza, nem esik át a lyukon.
+   e.x=Math.min(W-1,Math.max(0,x));e.y=0;
+  }
+ }else holes.set(k,v-1);
+}
+}
+const palette={brick:'#b65850',concrete:'#b4b4b4',ladder:'#e6bd64',rope:'#d3a75d',gold:'#f5d85b',runner:'#80e5f4',enemy:'#ef6d93'};
+function rect(x,y,w,h,color){g.fillStyle=color;g.fillRect(x,y,w,h)}
+function drawTile(t,x,y){const px=OX+x*S,py=OY+y*S;if(t==='#'||t==='F'){rect(px,py,8,8,'#aa5548');rect(px,py,8,1,'#e89b78');rect(px,py+4,8,1,'#592e37');rect(px+4,py,1,4,'#592e37');rect(px+1,py+1,2,1,'#d77c68');rect(px+5,py+5,2,1,'#d77c68')}else if(t==='X'){rect(px,py,8,8,palette.concrete);rect(px+1,py+1,2,2,'#777')}else if(t==='H'||(t==='L'&&gold===0)){rect(px+1,py,1,8,palette.ladder);rect(px+6,py,1,8,palette.ladder);rect(px+1,py+2,6,1,palette.ladder);rect(px+1,py+5,6,1,palette.ladder)}else if(t==='-')rect(px,py+3,8,1,palette.rope);else if(t==='$'){rect(px+2,py+1,4,6,palette.gold);rect(px+1,py+3,6,2,palette.gold)}}
+function figure(a,color){const x=OX+a.x*S,y=OY+a.y*S;rect(x+3,y,2,2,'#ffe4ae');rect(x+3,y+2,2,3,color);rect(x+1,y+3,2,1,color);rect(x+5,y+3,2,1,color);rect(x+2,y+5,1,2,color);rect(x+5,y+5,1,2,color);rect(x+1,y+7,2,1,color);rect(x+5,y+7,2,1,color)}
+function draw(){rect(0,0,320,200,'#000');g.font='8px monospace';g.fillStyle='#fff';g.fillText('SCORE '+String(score).padStart(6,'0')+'   MEN '+lives+'   LEVEL '+String(level+1).padStart(3,'0'),28,190);for(let y=0;y<H;y++)for(let x=0;x<W;x++)drawTile(tile(x,y),x,y);for(const [k,v] of holes){const [hx,hy]=k.split(',').map(Number);if(v<20)rect(OX+hx*S,OY+hy*S+Math.floor(v/3),S,S-Math.floor(v/3),'#aa5548')}figure(player,palette.runner);for(const e of enemies)figure(e,palette.enemy);if(paused){rect(80,94,160,17,'#000');g.fillStyle='#fff';g.fillText(lives?'SZÜNET - P / INDÍTÁS':'VÉGE - R / INDÍTÁS',91,105)}}
+document.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key))e.preventDefault();keys.add(e.key);if(e.repeat)return;if(e.key==='y'||e.key==='Y')dig(-1);if(e.key==='x'||e.key==='X')dig(1);if(e.key==='p'||e.key==='P')paused=!paused;if(e.key==='r'||e.key==='R')restart()});
+document.addEventListener('keyup',e=>keys.delete(e.key));
+// C64 D64: 35 tracks, 256-byte sectors. 150 levels at tracks 3-11,
+// sectors 0-15, then track 12 sectors 0-5. 14 bytes per row, low nibble first.
+function decodeDisk(bytes){
+ if(bytes.length!==174848&&bytes.length!==175531)throw Error('Nem szabványos 35 sávos D64');
+ const chars=['.','#','X','H','-','F','L','$','E','P'];
+ const sectorsBefore=t=>{let n=0;for(let k=1;k<t;k++)n+=k<=17?21:k<=24?19:k<=30?18:17;return n};
+ const result=[];
+ for(let i=0;i<150;i++){
+  const track=3+Math.floor(i/16),sector=i%16;
+  const offset=(sectorsBefore(track)+sector)*256;
+  const cells=[];
+  for(let j=0;j<224;j++){
+   const b=bytes[offset+j];
+   cells.push(chars[b&15]||'.',chars[b>>4]||'.');
+  }
+  const rows=[];
+  for(let y=0;y<16;y++)rows.push(cells.slice(y*28,(y+1)*28).join(''));
+  result.push(rows);
+ }
+ return result;
+}
+document.getElementById('disk').addEventListener('change',async event=>{
+ const file=event.target.files[0];if(!file)return;
+ try{
+  const bytes=new Uint8Array(await file.arrayBuffer());
+  maps=decodeDisk(bytes);originalDisk=true;restart();
+  alert('150 eredeti pálya betöltve a D64 fájlból. A grafika még fejlesztés alatt.');
+ }catch(err){alert('D64 betöltési hiba: '+err.message)}
+});
+document.getElementById('start').onclick=restart;document.getElementById('pause').onclick=()=>paused=!paused;document.getElementById('leftdig').onclick=()=>dig(-1);document.getElementById('rightdig').onclick=()=>dig(1);
+load();draw();setInterval(()=>{update();draw()},100);
+})();
+){set(player.x,player.y,'.');gold--;score+=100;if(gold===0){level++;load();return}}
 if(tick%3===0)for(const e of enemies){const d=Math.sign(player.x-e.x);if(d&&Math.random()<.75)move(e,d,0);else if(player.y<e.y&&tile(e.x,e.y)==='H')move(e,0,-1);gravity(e)}
 for(const e of enemies)if(e.x===player.x&&e.y===player.y){lives--;if(lives<=0){paused=true}else load();break}
 for(const [k,v] of holes){if(v<=1){const [x,y]=k.split(',').map(Number);set(x,y,'#');holes.delete(k)}else holes.set(k,v-1)}
