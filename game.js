@@ -58,10 +58,7 @@ document.addEventListener('keyup',e=>keys.delete(e.key));
 // sectors 0-15, then track 12 sectors 0-5. 14 bytes per row, low nibble first.
 function decodeDisk(bytes){
  if(bytes.length!==174848&&bytes.length!==175531)throw Error('Nem szabványos 35 sávos D64');
- const chars=['.','#','X','H','-','F','L','document.getElementById('pause').onclick=()=>paused=!paused;document.getElementById('leftdig').onclick=()=>dig(-1);document.getElementById('rightdig').onclick=()=>dig(1);
-load();draw();setInterval(()=>{update();draw()},100);
-})();
-,'E','P'];
+ const chars=['.','#','X','H','-','F','L','$','E','P'];
  const sectorsBefore=t=>{let n=0;for(let k=1;k<t;k++)n+=k<=17?21:k<=24?19:k<=30?18:17;return n};
  const result=[];
  for(let i=0;i<150;i++){
