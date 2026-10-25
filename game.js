@@ -19,7 +19,7 @@ function move(a,dx,dy){const nx=a.x+dx,ny=a.y+dy;if(!solid(tile(nx,ny))&&nx>=0&&
 function gravity(a){const t=tile(a.x,a.y),b=tile(a.x,a.y+1);if(t!=='H'&&t!=='-'&&b!=='H'&&!solid(b))move(a,0,1)}
 function dig(dir){const x=player.x+dir,y=player.y+1;if(tile(x,y)==='#'){set(x,y,'.');holes.set(x+','+y,65)}}
 function update(){if(paused)return;tick++;let dx=0,dy=0;if(keys.has('ArrowLeft')||keys.has('a'))dx=-1;else if(keys.has('ArrowRight')||keys.has('d'))dx=1;else if(keys.has('ArrowUp')||keys.has('w'))dy=-1;else if(keys.has('ArrowDown')||keys.has('s'))dy=1;
-if(dy<0&&(tile(player.x,player.y)==='H'||tile(player.x,player.y-1)==='H'))move(player,0,-1);
+if(dy<0&&(tile(player.x,player.y)==='H'||tile(player.x,player.y-1)==='H')){if(tile(player.x,player.y-1)==='#' && tile(player.x,player.y)==='H')set(player.x,player.y-1,'H');move(player,0,-1);}
 else if(dy>0)move(player,0,1);
 else if(dx)move(player,dx,0);
 gravity(player);
@@ -30,8 +30,8 @@ for(const [k,v] of holes){if(v<=1){const [x,y]=k.split(',').map(Number);set(x,y,
 }
 const palette={brick:'#b65850',concrete:'#b4b4b4',ladder:'#e6bd64',rope:'#d3a75d',gold:'#f5d85b',runner:'#80e5f4',enemy:'#ef6d93'};
 function rect(x,y,w,h,color){g.fillStyle=color;g.fillRect(x,y,w,h)}
-function drawTile(t,x,y){const px=OX+x*S,py=OY+y*S;if(t==='#'){rect(px,py,8,8,palette.brick);rect(px,py,8,1,'#f19a83');rect(px+3,py+4,1,4,'#74382e');rect(px,py+4,8,1,'#74382e')}else if(t==='X'){rect(px,py,8,8,palette.concrete);rect(px+1,py+1,2,2,'#777')}else if(t==='H'){rect(px+1,py,1,8,palette.ladder);rect(px+6,py,1,8,palette.ladder);rect(px+1,py+2,6,1,palette.ladder);rect(px+1,py+5,6,1,palette.ladder)}else if(t==='-')rect(px,py+3,8,1,palette.rope);else if(t==='$'){rect(px+2,py+1,4,6,palette.gold);rect(px+1,py+3,6,2,palette.gold)}}
-function figure(a,color){const x=OX+a.x*S,y=OY+a.y*S;rect(x+3,y,2,2,'#ffe4ae');rect(x+2,y+2,4,3,color);rect(x+1,y+3,1,2,color);rect(x+6,y+3,1,2,color);rect(x+2,y+5,1,3,color);rect(x+5,y+5,1,3,color)}
+function drawTile(t,x,y){const px=OX+x*S,py=OY+y*S;if(t==='#'){rect(px,py,8,8,'#aa5548');rect(px,py,8,1,'#e89b78');rect(px,py+4,8,1,'#592e37');rect(px+4,py,1,4,'#592e37');rect(px+1,py+1,2,1,'#d77c68');rect(px+5,py+5,2,1,'#d77c68')}else if(t==='X'){rect(px,py,8,8,palette.concrete);rect(px+1,py+1,2,2,'#777')}else if(t==='H'){rect(px+1,py,1,8,palette.ladder);rect(px+6,py,1,8,palette.ladder);rect(px+1,py+2,6,1,palette.ladder);rect(px+1,py+5,6,1,palette.ladder)}else if(t==='-')rect(px,py+3,8,1,palette.rope);else if(t==='$'){rect(px+2,py+1,4,6,palette.gold);rect(px+1,py+3,6,2,palette.gold)}}
+function figure(a,color){const x=OX+a.x*S,y=OY+a.y*S;rect(x+3,y,2,2,'#ffe4ae');rect(x+3,y+2,2,3,color);rect(x+1,y+3,2,1,color);rect(x+5,y+3,2,1,color);rect(x+2,y+5,1,2,color);rect(x+5,y+5,1,2,color);rect(x+1,y+7,2,1,color);rect(x+5,y+7,2,1,color)}
 function draw(){rect(0,0,320,200,'#000');g.font='8px monospace';g.fillStyle='#fff';g.fillText('LODE RUNNER    SCORE '+String(score).padStart(5,'0'),48,13);g.fillText('LEVEL '+(level+1)+'   LIVES '+lives+'   GOLD '+gold,48,23);for(let y=0;y<H;y++)for(let x=0;x<W;x++)drawTile(tile(x,y),x,y);figure(player,palette.runner);for(const e of enemies)figure(e,palette.enemy);if(paused){rect(80,94,160,17,'#000');g.fillStyle='#fff';g.fillText(lives?'SZÜNET - P / INDÍTÁS':'VÉGE - R / INDÍTÁS',91,105)}}
 document.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key))e.preventDefault();keys.add(e.key);if(e.repeat)return;if(e.key==='z'||e.key==='Z')dig(-1);if(e.key==='x'||e.key==='X')dig(1);if(e.key==='p'||e.key==='P')paused=!paused;if(e.key==='r'||e.key==='R')restart()});
 document.addEventListener('keyup',e=>keys.delete(e.key));
