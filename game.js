@@ -13,10 +13,24 @@ const keys=new Set();
 function tile(x,y){return y<0||y>=H||x<0||x>=W?'X':grid[y][x]}
 function set(x,y,v){if(x>=0&&x<W&&y>=0&&y<H)grid[y][x]=v}
 function solid(t){return t==='#'||t==='X'}
-function load(){grid=maps[level%maps.length].map(s=>s.split(''));enemies=[];gold=0;holes.clear();for(let y=0;y<H;y++)for(let x=0;x<W;x++){const t=tile(x,y);if(t==='$')gold++;if(t==='P'){player={x,y};set(x,y,'.')}if(t==='E'){enemies.push({x,y});set(x,y,'.')}}
-// Ideiglenes mintapálya-javítás: az aranyakat az összefüggő alsó járószintre helyezzük.
-// Így egyik arany sem marad létrával elérhetetlen felső platformon.
-for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(tile(x,y)==='
+function load(){
+ grid=maps[level%maps.length].map(row=>row.split(''));
+ enemies=[];gold=0;holes.clear();
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+  const t=tile(x,y);
+  if(t==='$')gold++;
+  if(t==='P'){player={x,y};set(x,y,'.')}
+  if(t==='E'){enemies.push({x,y});set(x,y,'.')}
+ }
+ // Az ideiglenes pályákon az aranyak az elérhető alsó járószintre kerülnek.
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(tile(x,y)==='$')set(x,y,'.');
+ const wanted=gold;gold=0;
+ for(let x=1;x<W-1&&gold<wanted;x++){
+  if(tile(x,14)==='.'&&tile(x,15)==='#'&&!(player.x===x&&player.y===14)){
+   set(x,14,'$');gold++;
+  }
+ }
+}
 function restart(){level=0;score=0;lives=5;paused=false;load()}
 function move(a,dx,dy){const nx=a.x+dx,ny=a.y+dy;if(!solid(tile(nx,ny))&&nx>=0&&nx<W&&ny>=0&&ny<H){a.x=nx;a.y=ny;return true}return false}
 function gravity(a){const t=tile(a.x,a.y),b=tile(a.x,a.y+1);if(t!=='H'&&t!=='-'&&b!=='H'&&!solid(b))move(a,0,1)}
